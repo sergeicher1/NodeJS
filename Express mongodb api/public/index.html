@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Zero to HERO!</title>
+    <style>
+      td,
+      th {
+        padding: 5px;
+        min-width: 90px;
+        max-width: 200px;
+        text-align: start;
+      }
+      .btn {
+        padding: 4px;
+        border: 1px solid gainsboro;
+        background-color: antiquewhite;
+        border-radius: 2px;
+        margin: 5px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>List of users</h2>
+    <form action="" name="userForm">
+      <input type="hidden" name="id" value="0" />
+      <p>
+        <label for="">Name:</label>
+        <input type="text" name="name" />
+      </p>
+      <p>
+        <label for="">Age:</label>
+        <input type="number" name="age" />
+      </p>
+      <p>
+        <button type="submit" id="submitBtn">Save</button>
+        <button type="reset" id="resetBtn">Reset</button>
+      </p>
+    </form>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Age</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <script>
+      const tbody = document.querySelector("tbody");
+      // get all users
+      async function GetUsers() {
+        // send request and get the answer
+        const response = await fetch("/api/users", {
+          method: "GET",
+          headers: { Accept: "application/json" },
+        });
+        // if the request is ok
+        if (response.ok === true) {
+          // get data
+          const users = await response.json();
+          users.forEach((user) => {
+            // add the received elements to table
+            tbody.append(row(user));
+          });
+        }
+      }
+      // get one user
+      async function GetUser(id) {
+        const response = await fetch("/api/users/" + id, {
+          method: "GET",
+          headers: { Accept: "application/json" },
+        });
+        if (response.ok === true) {
+          const user = await response.json();
+          const form = document.forms["userForm"];
+          form.elements["id"].value = user._id;
+          form.elements["name"].value = user.name;
+          form.elements["age"].value = user.age;
+        }
+      }
+      // adding the user
+      async function CreateUser(userName, userAge) {
+        const response = await fetch("/api/users", {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-type": "application/json",
+          },
+          body: JSON.stringify({
+            name: userName,
+            age: parseInt(userAge, 10),
+          }),
+        });
+        if (response.ok === true) {
+          const user = await response.json();
+          reset();
+          tbody.append(row(user));
+        }
+      }
+      // change the user
+      async function EditUser(userId, userName, userAge) {
+        const response = await fetch("/api/users", {
+          method: "PUT",
+          headers: {
+            Accept: "application/json",
+            "Content-type": "application/json",
+          },
+          body: JSON.stringify({
+            id: userId,
+            name: userName,
+            age: parseInt(userAge, 10),
+          }),
+        });
+        if (response.ok === true) {
+          const user = await response.json();
+          reset();
+          document
+            .querySelector(`tr[data-rowid="${user._id}"]`)
+            .replaceWith(row(user));
+        }
+      }
+      // delete the user
+      async function DeleteUser(id) {
+        const response = await fetch("/api/users/" + id, {
+          method: "DELETE",
+          headers: { Accept: "application/json" },
+        });
+        if (response.ok === true) {
+          const user = await response.json();
+          document.querySelector(`tr[data-rowid="${user._id}"]`).remove();
+        }
+      }
+      // reset the form
+      function reset() {
+        const form = document.forms["userForm"];
+        console.log(form);
+        form.reset();
+        form.elements["id"].value = 0;
+      }
+      // create row for the table
+      function row(user) {
+        const tr = document.createElement("tr");
+        tr.setAttribute("data-rowid", user._id);
+        const idTd = document.createElement("td");
+        idTd.append(user._id);
+        tr.append(idTd);
+        const nameTd = document.createElement("td");
+        nameTd.append(user.name);
+        tr.append(nameTd);
+        const ageTd = document.createElement("td");
+        ageTd.append(user.age);
+        tr.append(ageTd);
+        const linksTd = document.createElement("td");
+        const editLink = document.createElement("a");
+        editLink.setAttribute("data-id", user._id);
+        editLink.setAttribute("class", "btn");
+        editLink.append("Change");
+        editLink.addEventListener("click", (e) => {
+          e.preventDefault();
+          GetUser(user._id);
+        });
+        linksTd.append(editLink);
+        const removeLink = document.createElement("a");
+        removeLink.setAttribute("data-id", user._id);
+        removeLink.setAttribute("class", "btn");
+        removeLink.append("Delete");
+        removeLink.addEventListener("click", (e) => {
+          e.preventDefault();
+          DeleteUser(user._id);
+        });
+        linksTd.append(removeLink);
+        tr.appendChild(linksTd);
+        return tr;
+      }
+      // reset the value of the form
+      document.getElementById("resetBtn").addEventListener("click", (e) => {
+        e.preventDefault();
+        reset();
+      });
+      // send the form
+      document.forms["userForm"].addEventListener("submit", (e) => {
+        e.preventDefault();
+        const form = document.forms["userForm"];
+        const id = form.elements["id"].value;
+        const name = form.elements["name"].value;
+        const age = form.elements["age"].value;
+        if (id == 0) {
+          CreateUser(name, age);
+        } else {
+          EditUser(id, name, age);
+        }
+      });
+      // Load users
+      GetUsers();
+    </script>
+  </body>
+</html>
